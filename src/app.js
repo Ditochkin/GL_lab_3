@@ -1,352 +1,177 @@
-var gl; // глобальная переменная для контекста WebGL
 
-const vsSource = 'attribute vec3 vertPosition;\n' +
-                 'attribute vec3 vertColor;\n' +
-                 'varying vec3 fragColor;\n' +
-                 'varying vec3 fragPosition;\n' +
-                 'uniform mat4 mWorld;\n' +
-                 'void main()\n' +
-                 '{\n' +
-                 '  fragColor = vertColor;\n' +
-                 '  fragPosition = vertPosition;\n' +
-                 '  gl_Position = mWorld * vec4(vertPosition, 1.0);\n' +
-                 '}'
-
-const fsSource = 'precision mediump float;\n' +
-                 'varying vec3 fragColor;\n' +
-                 'void main()\n' + 
-                 '{\n' +
-                 '  gl_FragColor = vec4(fragColor, 1.0);\n' +
-                 '}'
-
-const fsSourceLines = 'precision mediump float;\n' +
-                'varying vec3 fragColor;\n' +
-                'varying vec3 fragPosition;\n' +
-                'void main()\n' + 
-                '{\n' +
-                'int x = int(fragPosition.x * 10.0);\n' +
-                'float y = mod(float(x), 2.0);\n' + 
-                'if ((y == 0.0) && (x < 0) || (y != 0.0) && (x >= 0) || fragPosition.x <= 0.0 && fragPosition.x >= -0.1){\n' +
-                'gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n' +
-                '}\n' +
-                'else{' +
-                'gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);' +
-                '}\n' +
-                '}'
-                 
-function initWebGL(canvas) 
-{
-    gl = null;
-    try 
-    { // Попытаться получить стандартный контекст.
-    // Если не получится, попробовать получить экспериментальный.
-        gl = canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimentalwebgl");
-    }
-    catch(e) {}
-    // Если мы не получили контекст GL, завершить работу
-    if (!gl) {
-        alert("Unable to initialize WebGL. Your browser may not support it.");
-        gl = null;
-    }
-
-    return gl;
-}
-
-function loadShader(gl, type, source) 
-{
-    const shader = gl.createShader(type);
-    // Send the source to the shader object
-    gl.shaderSource(shader, source);
-    // Compile the shader program
-    gl.compileShader(shader);
-    // See if it compiled successfully
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) 
-    {
-        alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-    }
-    return shader;
-}
-
-function initBuffersPolygon() 
-{
-	let triangleVerticesBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVerticesBuffer);
-
-	let vertices = 
+let vsSource =
     [
-        0.0, 0.0, 0.0,  1.0, 0.0, 0.0,
-        -0.6, -0.1, 0.0, 1.0, 0.0, 0.0,
-		0.0, -0.5, 0.0, 1.0, 0.0, 0.0,
-		-0.35, 0.5, 0.0, 1.0, 0.0, 0.0 ,
-        0.35, 0.5, 0.0, 1.0, 0.0, 0.0 ,
-        0.6, -0.1, 0.0, 1.0, 0.0, 0.0 ,
-        0.0, -0.5, 0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-	];
+        'precision mediump float;',
+        'attribute vec3 vertPositions;',
+        'attribute vec3 vertColor;',
+        'varying vec3 fragColor;',
+        '',
+        'uniform vec3 uColors;',
+        'uniform mat4 mWorld;',
+        'uniform mat4 mView;',
+        'uniform mat4 mProj;',
+        '',
+        'void main()',
+        '{',
+        '   fragColor = uColors;',
+        '   gl_Position = mProj * mView * mWorld * vec4(vertPositions, 1.0);',
+        '}',
+    ].join('\n');
 
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-}
+let fsSource =
+    [
+        'precision mediump float;',
+        '',
+        'varying vec3 fragColor;',
+        'void main()',
+        '{',
+        '   gl_FragColor = vec4(fragColor, 1.0);',
+        '}',
+    ].join('\n');
 
-function initBuffersCube() 
-{
-	let squareVerticesBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+let canvas = document.getElementById("canvas1");
+canvas.width = 1000;
+canvas.height = 1000;
 
-	let vertices = 
-    [ // X, Y, Z           R, G, B
-		// Front
-		-0.5, -0.5, -0.5,   0.5, 0.5, 0.5, // 3
-		-0.5, 0.5, -0.5,    0.5, 0.5, 0.5, // 1
-		0.5, 0.5, -0.5,     0.5, 0.5, 0.5, // 2
+initWebGl(canvas);
 
-        -0.5, -0.5, -0.5,   0.5, 0.5, 0.5, // 3
-		0.5, 0.5, -0.5,     0.5, 0.5, 0.5, // 2
-        0.5, -0.5, -0.5,     0.5, 0.5, 0.5, // 4
+let shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+gl.useProgram(shaderProgram);
 
-        // Top
-        -0.5, 0.5, -0.5,    0.2, 0.7, 0.1, // 1
-        -0.5, 0.5, 0.5,    0.2, 0.7, 0.1, // 5
-        0.5, 0.5, 0.5,     0.2, 0.7, 0.1, // 6
+initBuffersCube()
 
-        -0.5, 0.5, -0.5,    0.2, 0.7, 0.1, // 1
-        0.5, 0.5, -0.5,     0.2, 0.7, 0.1, // 2
-        0.5, 0.5, 0.5,     0.2, 0.7, 0.1, // 6
+let positionAttribLocationCube = enableVertexAttrib(shaderProgram, "vertPositions", 3, 6, 0);
+gl.enableVertexAttribArray(positionAttribLocationCube);
 
-        // Bottom
-        -0.5, -0.5, -0.5,   0.1, 0.5, 0.0, // 3
-		0.5, -0.5, 0.5,     0.1, 0.5, 0.0, // 8
-        0.5, -0.5, -0.5,     0.1, 0.5, 0.0, // 4
+// Matrices for rotations
+let worldMatrix = gl.getUniformLocation(shaderProgram, "mWorld");
+let viewMatrix = gl.getUniformLocation(shaderProgram, "mView");
+let projMatrix = gl.getUniformLocation(shaderProgram, "mProj");
+let vecColors = gl.getUniformLocation(shaderProgram, "uColors");
 
-        -0.5, -0.5, -0.5,   0.1, 0.5, 0.0, // 3
-		0.5, -0.5, 0.5,     0.1, 0.5, 0.0, // 8
-        -0.5, -0.5, 0.5,   0.1, 0.5, 0.0, // 7
+let worldMatrixCube = new Float32Array(16);
+let viewMatrixCube = new Float32Array(16);
+let projMatrixCube = new Float32Array(16);
+let uColorsCube = [0.0, 0.0, 0.0]
 
-        // Left
-        -0.5, -0.5, -0.5,   0.5, 0.0, 1.0, // 3
-		-0.5, 0.5, -0.5,    0.5, 0.0, 1.0, // 1
-        -0.5, -0.5, 0.5,   0.5, 0.0, 1.0, // 7
+glMatrix.mat4.identity(worldMatrixCube)
+glMatrix.mat4.lookAt(viewMatrixCube, [0, 0, -8], [0, 0, 0], [0, 1, 0]);
+glMatrix.mat4.perspective(projMatrixCube, toRadians(45), canvas.width / canvas.height, 0.1, 1000.0);
 
-        -0.5, 0.5, 0.5,    0.5, 0.0, 1.0, // 5
-		-0.5, 0.5, -0.5,    0.5, 0.0, 1.0, // 1
-        -0.5, -0.5, 0.5,   0.5, 0.0, 1.0, // 7
+gl.uniformMatrix4fv(worldMatrix, false, worldMatrixCube);
+gl.uniformMatrix4fv(viewMatrix, false, viewMatrixCube);
+gl.uniformMatrix4fv(projMatrix, false, projMatrixCube);
+gl.uniform3fv(vecColors, uColorsCube)
 
-        //Right
-        0.5, 0.5, -0.5,     0.2, 1.0, 0.1, // 2
-		0.5, -0.5, 0.5,     0.2, 1.0, 0.1, // 8
-        0.5, -0.5, -0.5,     0.2, 1.0, 0.1, // 4
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        0.5, 0.5, -0.5,     0.2, 1.0, 0.1, // 2
-		0.5, -0.5, 0.5,     0.2, 1.0, 0.1, // 8
-        0.5, 0.5, 0.5,     0.2, 1.0, 0.1, // 6
+// Matrices for cubes
+let arr = new Float32Array(16);
+let identityMatrix = glMatrix.mat4.identity(arr);
 
-        //Back
-        -0.5, 0.5, 0.5,    0.2, 0.3, 0.5, // 5
-		0.5, 0.5, 0.5,     0.2, 0.3, 0.5, // 6
-        -0.5, -0.5, 0.5,   0.2, 0.3, 0.5, // 7
+let topCubeMatrix = new Float32Array(16);
+let botCubeMatrix = new Float32Array(16);
+let leftCubeMatrix = new Float32Array(16);
+let rightCubeMatrix = new Float32Array(16);
 
-        0.5, -0.5, 0.5,     0.2, 0.3, 0.5, // 8
-		0.5, 0.5, 0.5,     0.2, 0.3, 0.5, // 6
-        -0.5, -0.5, 0.5,   0.2, 0.3, 0.5, // 7
-	];
+const norm = 1;
+const defaultX = 0.5;
+const defaultY = -1;
+const defaultZ = -1;
 
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-}
+glMatrix.mat4.translate(topCubeMatrix, identityMatrix, [defaultX, norm + defaultY, defaultZ]);
+glMatrix.mat4.translate(botCubeMatrix, identityMatrix, [defaultX, defaultY, defaultZ]);
+glMatrix.mat4.translate(leftCubeMatrix, identityMatrix, [norm + defaultX, defaultY, defaultZ]);
+glMatrix.mat4.translate(rightCubeMatrix, identityMatrix, [-norm + defaultX, defaultY, defaultZ]);
 
-function initBuffersSquare()
-{
-    let squareVerticesBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+// Actrions for rotations
+let currentAngle = 0;
+let currentAngleY = 0;
 
-	let vertices = 
-    [ 
-        -0.5, -0.5, 0.0,     0.2, 0.3, 0.5,
-        -0.5, 0.5, 0.0,     0.2, 0.3, 0.5,
-        0.5, -0.5, 0.0,     0.2, 0.3, 0.5,
-        0.5, 0.5, 0.0,     0.2, 0.3, 0.5,
-        0.0, 0.0, 0.0,     0.2, 0.3, 0.5,
-	];
+document.addEventListener('keydown', (event) => {
+    let key = event.key;
+    let angleRot = 3
 
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-}
-
-function initShaderProgram(gl, vsSource, fsSource) 
-{
-    const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-    const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource); 
-
-    // Create the shader program
-    const shaderProgram = gl.createProgram();
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-    // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) 
+    if (key == "ArrowLeft")
     {
-        alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-        return null;
+        currentAngle -= angleRot;
+        glMatrix.mat4.rotate(topCubeMatrix, topCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(botCubeMatrix, botCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+
+        glMatrix.mat4.translate(leftCubeMatrix, identityMatrix, [norm * Math.cos(toRadians(-currentAngle + currentAngleY)) + defaultX, defaultY, norm * Math.sin(toRadians(-currentAngle + currentAngleY)) + defaultZ]);
+        glMatrix.mat4.rotate(leftCubeMatrix, leftCubeMatrix, toRadians(currentAngle), [0, 1, 0]);
+
+        glMatrix.mat4.translate(rightCubeMatrix, identityMatrix, [norm * Math.cos(toRadians(180 - currentAngle + currentAngleY)) + defaultX, defaultY, norm * Math.sin(toRadians(180 - currentAngle + currentAngleY)) + defaultZ]);
+        glMatrix.mat4.rotate(rightCubeMatrix, rightCubeMatrix, toRadians(currentAngle), [0, 1, 0]);
+    }
+    else if (key == "ArrowRight")
+    {
+        currentAngle += angleRot;
+        glMatrix.mat4.rotate(topCubeMatrix, topCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(botCubeMatrix, botCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+
+        glMatrix.mat4.translate(leftCubeMatrix, identityMatrix, [norm * Math.cos(toRadians(-currentAngle + currentAngleY)) + defaultX, defaultY, norm * Math.sin(toRadians(-currentAngle + currentAngleY)) + defaultZ]);
+        glMatrix.mat4.rotate(leftCubeMatrix, leftCubeMatrix, toRadians(currentAngle), [0, 1, 0]);
+
+        glMatrix.mat4.translate(rightCubeMatrix, identityMatrix, [norm * Math.cos(toRadians(180 - currentAngle + currentAngleY)) + defaultX, defaultY, norm * Math.sin(toRadians(180 - currentAngle + currentAngleY)) + defaultZ]);
+        glMatrix.mat4.rotate(rightCubeMatrix, rightCubeMatrix, toRadians(currentAngle), [0, 1, 0]);
     }
 
-    return shaderProgram;
-}
+    else if (key == "a")
+    {
+        currentAngle -= angleRot;
+        currentAngleY -= angleRot;
+        glMatrix.mat4.rotate(topCubeMatrix, topCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(botCubeMatrix, botCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(leftCubeMatrix, leftCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(rightCubeMatrix, rightCubeMatrix, toRadians(-angleRot), [0, 1, 0]);
+    }
+    else if (key == "d")
+    {
+        currentAngle += angleRot;
+        currentAngleY += angleRot;
+        glMatrix.mat4.rotate(topCubeMatrix, topCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(botCubeMatrix, botCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(leftCubeMatrix, leftCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+        glMatrix.mat4.rotate(rightCubeMatrix, rightCubeMatrix, toRadians(angleRot), [0, 1, 0]);
+    }
 
-let vertexPositionAttribute
-let vertColorAttribute
+    else if (key == "q")
+    {
+        glMatrix.mat4.rotate(viewMatrixCube, viewMatrixCube, toRadians(-angleRot), [0, 1, 0]);
+    }
+    else if (key == "e")
+    {
+        glMatrix.mat4.rotate(viewMatrixCube, viewMatrixCube, toRadians(angleRot), [0, 1, 0]);
+    }
+}, false);
 
-function drawScenePolygon() {
-	gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 0);
-	gl.vertexAttribPointer(vertColorAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 3*Float32Array.BYTES_PER_ELEMENT);
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 80);
-}
-
-function drawSceneCube() {
-
-	gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 0);
-	gl.vertexAttribPointer(vertColorAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 3*Float32Array.BYTES_PER_ELEMENT);
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
-
-	gl.drawArrays(gl.TRIANGLES, 0, 40);
-}
-
-function drawSceneLineQuad() {
-
-	gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 0);
-	gl.vertexAttribPointer(vertColorAttribute, 3, gl.FLOAT, false, 6*Float32Array.BYTES_PER_ELEMENT, 3*Float32Array.BYTES_PER_ELEMENT);
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
-
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 40);
-
-}
-
-function start() 
+let loop = () =>
 {
-    // ============== Polygon =============
-    var canvas = document.getElementById("glcanvas");
-    gl = initWebGL(canvas); // инициализация контекста GL – сами пишем
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const shaderProgramPoltgon = initShaderProgram(gl, vsSource, fsSource);
-    // продолжать только если WebGL доступен и работает  
+    gl.uniformMatrix4fv(viewMatrix, false, viewMatrixCube);  
+    
+    gl.uniform3fv(vecColors, [0.83, 0.68, 0.215])
+    glMatrix.mat4.copy(worldMatrixCube, topCubeMatrix);
+    gl.uniformMatrix4fv(worldMatrix, false, worldMatrixCube);  
+    gl.drawArrays(gl.TRIANGLES, 0, 40);
 
-    if (gl) 
-    { // продолжать только если WebGL доступен и работает
-        // Устанавливаем размер вьюпорта
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        // установить в качестве цвета очистки буфера цвета черный, полная непрозрачность
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        // включает использование буфера глубины
-        gl.enable(gl.DEPTH_TEST);
-        // определяет работу буфера глубины: более ближние объекты перекрывают дальние
-        gl.depthFunc(gl.LEQUAL);
-        // очистить буфер цвета и буфер глубины
-        gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); 
-    }
+    glMatrix.mat4.copy(worldMatrixCube, botCubeMatrix);
+    gl.uniformMatrix4fv(worldMatrix, false, worldMatrixCube);
+    gl.drawArrays(gl.TRIANGLES, 0, 40);
 
-    initBuffersPolygon()
-    vertexPositionAttribute = gl.getAttribLocation(shaderProgramPoltgon, "vertPosition");
-    vertColorAttribute = gl.getAttribLocation(shaderProgramPoltgon, "vertColor");
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-    gl.enableVertexAttribArray(vertColorAttribute);
-    gl.useProgram(shaderProgramPoltgon);
+    gl.uniform3fv(vecColors, [0.75, 0.75, 0.75])
+    glMatrix.mat4.copy(worldMatrixCube, leftCubeMatrix);
+    gl.uniformMatrix4fv(worldMatrix, false, worldMatrixCube);
+    gl.drawArrays(gl.TRIANGLES, 0, 40);
 
-    var matWorldUniformLocation = gl.getUniformLocation(shaderProgramPoltgon, 'mWorld');
+    gl.uniform3fv(vecColors, [0.8, 0.498, 0.196])
+    glMatrix.mat4.copy(worldMatrixCube, rightCubeMatrix);
+    gl.uniformMatrix4fv(worldMatrix, false, worldMatrixCube);
+    gl.drawArrays(gl.TRIANGLES, 0, 40);
 
-	var worldMatrix = new Float32Array(16);
-	glMatrix.mat4.identity(worldMatrix);
-
-	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
-
-    drawScenePolygon()
-
-    // ============== Cube =============
-
-    var canvas2 = document.getElementById("cubeCanvas");
-    initWebGL(canvas2)
-    if (gl) 
-    { // продолжать только если WebGL доступен и работает
-        // Устанавливаем размер вьюпорта
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        // установить в качестве цвета очистки буфера цвета черный, полная непрозрачность
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        // включает использование буфера глубины
-        gl.enable(gl.DEPTH_TEST);
-        // определяет работу буфера глубины: более ближние объекты перекрывают дальние
-        gl.depthFunc(gl.LEQUAL);
-        // очистить буфер цвета и буфер глубины
-        gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); 
-    }
-
-    const shaderProgramCube = initShaderProgram(gl, vsSource, fsSource);
-
-    initBuffersCube()
-    vertexPositionAttribute = gl.getAttribLocation(shaderProgramCube, "vertPosition");
-    vertColorAttribute = gl.getAttribLocation(shaderProgramCube, "vertColor");
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-    gl.enableVertexAttribArray(vertColorAttribute);
-    gl.useProgram(shaderProgramCube);
-
-    matWorldUniformLocation = gl.getUniformLocation(shaderProgramCube, 'mWorld');
-
-	worldMatrix = new Float32Array(16);
-	glMatrix.mat4.identity(worldMatrix);
-
-	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
-
-    var xRotationMatrix = new Float32Array(16);
-	var yRotationMatrix = new Float32Array(16);
-
-	var identityMatrix = new Float32Array(16);
-	glMatrix.mat4.identity(identityMatrix);
-	var angle = 0.25 * Math.PI;
-    glMatrix.mat4.rotate(yRotationMatrix, identityMatrix, angle * 3, [0, 1, 0]);
-    glMatrix.mat4.rotate(xRotationMatrix, identityMatrix, angle / 3, [1, 0, 0]);
-    glMatrix.mat4.mul(worldMatrix, yRotationMatrix, xRotationMatrix);
-    gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
-
-    drawSceneCube()
-
-    // ============== Square =============
-
-    var canvas3 = document.getElementById("lineSquareCanvas");
-    initWebGL(canvas3); // инициализация контекста GL – сами пишем
-
-    const shaderProgramLineSquare = initShaderProgram(gl, vsSource, fsSourceLines);
-    // продолжать только если WebGL доступен и работает  
-
-    if (gl) 
-    { // продолжать только если WebGL доступен и работает
-        // Устанавливаем размер вьюпорта
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        // установить в качестве цвета очистки буфера цвета черный, полная непрозрачность
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        // включает использование буфера глубины
-        gl.enable(gl.DEPTH_TEST);
-        // определяет работу буфера глубины: более ближние объекты перекрывают дальние
-        gl.depthFunc(gl.LEQUAL);
-        // очистить буфер цвета и буфер глубины
-        gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); 
-    }
-
-    initBuffersSquare()
-
-    vertexPositionAttribute = gl.getAttribLocation(shaderProgramLineSquare, "vertPosition");
-    vertColorAttribute = gl.getAttribLocation(shaderProgramLineSquare, "vertColor");
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-    gl.enableVertexAttribArray(vertColorAttribute);
-    gl.useProgram(shaderProgramLineSquare);
-
-    var matWorldUniformLocation = gl.getUniformLocation(shaderProgramLineSquare, 'mWorld');
-
-	var worldMatrix = new Float32Array(16);
-	glMatrix.mat4.identity(worldMatrix);
-
-	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
-
-    drawSceneLineQuad()
+    requestAnimationFrame(loop);
 }
 
-start() 
+requestAnimationFrame(loop);

@@ -1,5 +1,5 @@
-
 let gl = null;
+
 function initWebGl(canvas)
 {
     gl = canvas.getContext("webgl");
@@ -15,9 +15,8 @@ function initWebGl(canvas)
         alert("Your browser does not support WebGL");
     }
 
-    gl.clearColor(1, 0.85, 0.85, 1);
+    gl.clearColor(0.95, 0.95, 0.95, 1);
     gl.enable(gl.DEPTH_TEST);
-    //gl.enable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
@@ -122,65 +121,7 @@ function initBuffersCube()
         -0.5, -0.5, 0.5,   0.2, 0.3, 0.5, // 7
 	];
 
-    let verticesSecond = 
-    [ // X, Y, Z           R, G, B
-		// Front
-		-0.5, -0.5, -0.5,   0.75, 0.75, 0.75, // 3
-		-0.5, 0.5, -0.5,    0.75, 0.75, 0.75, // 1
-		0.5, 0.5, -0.5,     0.75, 0.75, 0.75, // 2
-
-        -0.5, -0.5, -0.5,   0.75, 0.75, 0.75, // 3
-		0.5, 0.5, -0.5,     0.75, 0.75, 0.75, // 2
-        0.5, -0.5, -0.5,     0.75, 0.75, 0.75, // 4
-
-        // Top
-        -0.5, 0.5, -0.5,    0.75, 0.75, 0.75, // 1
-        -0.5, 0.5, 0.5,    0.75, 0.75, 0.75, // 5
-        0.5, 0.5, 0.5,     0.75, 0.75, 0.75, // 6
-
-        -0.5, 0.5, -0.5,    0.75, 0.75, 0.75, // 1
-        0.5, 0.5, -0.5,     0.75, 0.75, 0.75, // 2
-        0.5, 0.5, 0.5,     0.75, 0.75, 0.75, // 6
-
-        // Bottom
-        -0.5, -0.5, -0.5,   0.75, 0.75, 0.75, // 3
-		0.5, -0.5, 0.5,     0.75, 0.75, 0.75, // 8
-        0.5, -0.5, -0.5,     0.75, 0.75, 0.75, // 4
-
-        -0.5, -0.5, -0.5,   0.75, 0.75, 0.75, // 3
-		0.5, -0.5, 0.5,     0.75, 0.75, 0.75, // 8
-        -0.5, -0.5, 0.5,   0.75, 0.75, 0.75, // 7
-
-        // Left
-        -0.5, -0.5, -0.5,   0.5, 0.0, 1.0, // 3
-		-0.5, 0.5, -0.5,    0.5, 0.0, 1.0, // 1
-        -0.5, -0.5, 0.5,   0.5, 0.0, 1.0, // 7
-
-        -0.5, 0.5, 0.5,    0.5, 0.0, 1.0, // 5
-		-0.5, 0.5, -0.5,    0.5, 0.0, 1.0, // 1
-        -0.5, -0.5, 0.5,   0.5, 0.0, 1.0, // 7
-
-        //Right
-        0.5, 0.5, -0.5,     0.2, 1.0, 0.1, // 2
-		0.5, -0.5, 0.5,     0.2, 1.0, 0.1, // 8
-        0.5, -0.5, -0.5,     0.2, 1.0, 0.1, // 4
-
-        0.5, 0.5, -0.5,     0.2, 1.0, 0.1, // 2
-		0.5, -0.5, 0.5,     0.2, 1.0, 0.1, // 8
-        0.5, 0.5, 0.5,     0.2, 1.0, 0.1, // 6
-
-        //Back
-        -0.5, 0.5, 0.5,    0.2, 0.3, 0.5, // 5
-		0.5, 0.5, 0.5,     0.2, 0.3, 0.5, // 6
-        -0.5, -0.5, 0.5,   0.2, 0.3, 0.5, // 7
-
-        0.5, -0.5, 0.5,     0.2, 0.3, 0.5, // 8
-		0.5, 0.5, 0.5,     0.2, 0.3, 0.5, // 6
-        -0.5, -0.5, 0.5,   0.2, 0.3, 0.5, // 7
-	];
-
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesSecond), gl.STATIC_DRAW);
 }
 
 function enableVertexAttrib(shaderProgram, attributeName, size, stride, offset)
@@ -196,4 +137,9 @@ function enableVertexAttrib(shaderProgram, attributeName, size, stride, offset)
     );
 
     return attribLocation;
+}
+
+const toRadians = (degree) =>
+{
+    return degree * (Math.PI / 180);
 }
